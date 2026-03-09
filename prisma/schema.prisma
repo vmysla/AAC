@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  accounts       Account[]
+  sessions       Session[]
+  ownedProfiles  ChildProfile[]  @relation("Owner")
+  accessProfiles ProfileAccess[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model ChildProfile {
+  id        String   @id @default(cuid())
+  name      String
+  image     String?
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  owner      User            @relation("Owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  accessList ProfileAccess[]
+  activities Activity[]
+}
+
+model ProfileAccess {
+  id        String   @id @default(cuid())
+  profileId String
+  userId    String
+  invitedAt DateTime @default(now())
+
+  profile ChildProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, userId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  profileId String
+  date      DateTime
+  icon      String
+  label     String
+  position  Int      // 1-4 slot within the day
+  createdAt DateTime @default(now())
+
+  profile ChildProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
