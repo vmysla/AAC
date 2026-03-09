@@ -3,14 +3,25 @@
 import { useState } from "react";
 import { NavBar } from "@/components/layout/NavBar";
 import { AACGrid } from "@/components/aac/AACGrid";
-import { AACButtonData } from "@/types";
+import { AACButtonEntry } from "@/data/aacButtons";
 import { motion, AnimatePresence } from "motion/react";
 
 export function AACScreen() {
-  const [spoken, setSpoken] = useState<Partial<AACButtonData>[]>([]);
+  const [spoken, setSpoken] = useState<AACButtonEntry[]>([]);
 
-  function handleButtonPress(button: Partial<AACButtonData>) {
+  function handleButtonPress(button: AACButtonEntry) {
     setSpoken((prev) => [...prev.slice(-8), button]);
+    // Save to recent buttons for First-Then screen
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("aac:recentButtons");
+        const recent: AACButtonEntry[] = stored ? JSON.parse(stored) : [];
+        const deduped = [button, ...recent.filter((r) => r.label !== button.label)].slice(0, 12);
+        localStorage.setItem("aac:recentButtons", JSON.stringify(deduped));
+      } catch {
+        // ignore localStorage errors
+      }
+    }
     // Text-to-speech
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       const utt = new SpeechSynthesisUtterance(button.label);

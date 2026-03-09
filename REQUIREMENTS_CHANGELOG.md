@@ -103,3 +103,30 @@
 - B1:2 (Calendar nav button): if already on `/calendar`, dispatches `calendar:scrollToToday` event to smoothly scroll back to the current week instead of navigating
 
 ---
+
+## [v0.5.0] — 2026-03-09
+
+### Type: New Screen — First-Then Board
+
+### Instruction (verbatim)
+> The third B1:3 Button will be a first then. So, on this screen, the user can select what happens first. And what will follow. On this screen, it will show a few of the recently pressed AAC buttons. The user should confirm which item from those AAC buttons they think the user is requesting. After that selection is made, the user should decide what happened first before that item becomes available.
+> It can be waiting for some period of time. There should be predefined buttons for wait time: 1 minute, 2 minutes, 3 minutes, 5 minutes, 10 minutes, 15 minutes, 20 minutes, 30 minutes, 1 hour. The user should also be able to use visual controls to add waiting time, or instead of waiting, the user can say that first you need to do something different and select what that thing is from the AAC screen. If that thing needs to happen only once or several times, for example, if you press on a see that you want a burger, then you go to the first menu to confirm that the user wants a burger. Before that, we will select salad, for example, from the AAC and say that salad has to be 10 times, so the user understands that they need to make 10 bites of salad before they get their burger.
+> When all of the 10 times have happened, we show that you get your burger and celebrate getting the burger each time it is eaten. The user presses on the salad icon and confirms it, and the same thing happens after the timer is up. It should show the item that you get, with a celebration animation, and of course the number of tokens you need to do should be able to be customized. There should be predefined, like 5, 10, or I don't know, two, three, how many, plus the ability to change those through the UI.
+
+### Changes Applied to REQUIREMENTS.md
+- Added B1:3 → First-Then Screen to navigation section
+- Added full First-Then Screen specification:
+  - 3-step setup flow: select THEN item → select FIRST mode → configure
+  - Wait mode: 9 predefined durations + ±1 min visual adjuster + circular countdown
+  - Task mode: AAC item picker + token count (predefined 1/2/3/5/7/10 + custom +/−) + tappable token progress
+  - Celebration overlay with burst particle animation on completion
+
+### Changes Applied to Code
+- `src/data/aacButtons.ts` — extracted `DEFAULT_BUTTONS` and `AACButtonEntry` type (shared between AAC grid and First-Then pickers)
+- `src/components/aac/AACGrid.tsx` — imports from shared data file
+- `src/app/aac/AACScreen.tsx` — saves each button press to `localStorage["aac:recentButtons"]` (max 12, deduplicated)
+- `src/components/layout/NavBar.tsx` — added B1:3 First-Then nav button
+- `src/app/first-then/page.tsx` — new route
+- `src/app/first-then/FirstThenScreen.tsx` — full state-machine screen (8 phases)
+
+---

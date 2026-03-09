@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Home, Calendar } from "lucide-react";
+import { Home, Calendar, ListOrdered } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_COLS = 12;
@@ -31,6 +31,12 @@ export function NavBar() {
       label: "Calendar",
       icon: <Calendar className="w-5 h-5" />,
       href: "/calendar",
+    },
+    {
+      col: 3,
+      label: "First-Then",
+      icon: <ListOrdered className="w-5 h-5" />,
+      href: "/first-then",
     },
   ];
 
