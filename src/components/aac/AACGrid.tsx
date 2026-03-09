@@ -8,9 +8,10 @@ const COLS = 12;
 
 interface AACGridProps {
   onButtonPress?: (button: AACButtonEntry) => void;
+  style?: React.CSSProperties;
 }
 
-export function AACGrid({ onButtonPress }: AACGridProps) {
+export function AACGrid({ onButtonPress, style }: AACGridProps) {
   const buttonMap = new Map(
     DEFAULT_BUTTONS.map((b) => [`${b.row}:${b.col}`, b])
   );
@@ -22,6 +23,7 @@ export function AACGrid({ onButtonPress }: AACGridProps) {
         gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
         height: "calc(100vh - var(--nav-height))",
+        ...style,
       }}
     >
       {Array.from({ length: ROWS }, (_, rowIdx) =>

@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { NavBar } from "@/components/layout/NavBar";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { DEFAULT_BUTTONS, AACButtonEntry } from "@/data/aacButtons";
+import { DEFAULT_BUTTONS } from "@/data/aacButtons";
+import { AACGrid } from "@/components/aac/AACGrid";
 import * as LucideIcons from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -265,32 +266,26 @@ function SelectWait({
   );
 }
 
-// ─── Phase 3b: Select task item ───────────────────────────────────────────────
+// ─── Phase 3b: Select task item (full AAC grid) ───────────────────────────────
 
 function SelectTaskItem({
-  thenItem,
   onSelect,
 }: {
   thenItem: PickedItem;
   onSelect: (item: PickedItem) => void;
 }) {
-  const items: PickedItem[] = DEFAULT_BUTTONS.map((b) => ({
-    label: b.label,
-    iconName: b.iconName,
-    color: b.color,
-  }));
-
   return (
-    <div className="flex flex-col h-full p-4 gap-3">
-      <div className="text-center shrink-0">
-        <p className="text-sm text-white/40">What must happen first before</p>
-        <div className="flex items-center justify-center gap-2 mt-1">
-          <ItemIcon iconName={thenItem.iconName} size="sm" />
-          <h2 className="text-xl font-bold text-white">{thenItem.label}</h2>
-        </div>
-      </div>
-      <ButtonGrid items={items} onSelect={onSelect} />
-    </div>
+    <AACGrid
+      style={{ height: "100%" }}
+      onButtonPress={(btn) => {
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          const utt = new SpeechSynthesisUtterance(btn.label);
+          utt.rate = 0.9;
+          window.speechSynthesis.speak(utt);
+        }
+        onSelect({ label: btn.label, iconName: btn.iconName, color: btn.color });
+      }}
+    />
   );
 }
 
