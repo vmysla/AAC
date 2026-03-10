@@ -20,10 +20,12 @@ type Phase =
   | { step: "select-then" }
   | { step: "select-first-mode"; thenItem: PickedItem }
   | { step: "select-wait"; thenItem: PickedItem }
-  | { step: "select-task-item"; thenItem: PickedItem }
+  | { step: "select-task-item"; thenItem: PickedItem; mode: "count" | "duration" }
   | { step: "select-task-count"; thenItem: PickedItem; firstItem: PickedItem }
+  | { step: "select-task-duration"; thenItem: PickedItem; firstItem: PickedItem }
   | { step: "active-wait"; thenItem: PickedItem; totalSeconds: number; remainingSeconds: number }
   | { step: "active-task"; thenItem: PickedItem; firstItem: PickedItem; totalCount: number; completedCount: number }
+  | { step: "active-task-wait"; thenItem: PickedItem; firstItem: PickedItem; totalSeconds: number; remainingSeconds: number }
   | { step: "celebrating"; thenItem: PickedItem };
 
 const WAIT_OPTIONS = [
@@ -153,11 +155,13 @@ function SelectThen({ onSelect }: { onSelect: (item: PickedItem) => void }) {
 function SelectFirstMode({
   thenItem,
   onWait,
-  onTask,
+  onTaskCount,
+  onTaskTimer,
 }: {
   thenItem: PickedItem;
   onWait: () => void;
-  onTask: () => void;
+  onTaskCount: () => void;
+  onTaskTimer: () => void;
 }) {
   return (
     <div className="flex flex-col h-full p-4 gap-4">
@@ -170,27 +174,38 @@ function SelectFirstMode({
         <p className="text-base text-white/60 mt-2">...first you need to:</p>
       </div>
 
-      <div className="flex-1 flex gap-4 items-center justify-center">
+      <div className="flex-1 flex gap-3 items-center justify-center">
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.95 }}
           onClick={onWait}
-          className="flex-1 max-w-xs flex flex-col items-center justify-center gap-4 rounded-2xl bg-amber-500/15 border-2 border-amber-400/40 hover:bg-amber-500/25 p-8 aspect-square transition-colors"
+          className="flex-1 flex flex-col items-center justify-center gap-3 rounded-2xl bg-amber-500/15 border-2 border-amber-400/40 hover:bg-amber-500/25 p-6 h-full max-h-64 transition-colors"
         >
-          <LucideIcons.Clock className="w-16 h-16 text-amber-300" />
-          <span className="text-xl font-bold text-amber-200">Wait</span>
-          <span className="text-xs text-amber-300/60 text-center">Wait a set amount of time</span>
+          <LucideIcons.Clock className="w-14 h-14 text-amber-300" />
+          <span className="text-lg font-bold text-amber-200">Wait</span>
+          <span className="text-xs text-amber-300/60 text-center">Just wait a set amount of time</span>
         </motion.button>
 
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.95 }}
-          onClick={onTask}
-          className="flex-1 max-w-xs flex flex-col items-center justify-center gap-4 rounded-2xl bg-purple-500/15 border-2 border-purple-400/40 hover:bg-purple-500/25 p-8 aspect-square transition-colors"
+          onClick={onTaskCount}
+          className="flex-1 flex flex-col items-center justify-center gap-3 rounded-2xl bg-purple-500/15 border-2 border-purple-400/40 hover:bg-purple-500/25 p-6 h-full max-h-64 transition-colors"
         >
-          <LucideIcons.ListChecks className="w-16 h-16 text-purple-300" />
-          <span className="text-xl font-bold text-purple-200">Do a task</span>
-          <span className="text-xs text-purple-300/60 text-center">Complete something a number of times</span>
+          <LucideIcons.ListChecks className="w-14 h-14 text-purple-300" />
+          <span className="text-lg font-bold text-purple-200">Task × times</span>
+          <span className="text-xs text-purple-300/60 text-center">Do something a set number of times</span>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onTaskTimer}
+          className="flex-1 flex flex-col items-center justify-center gap-3 rounded-2xl bg-teal-500/15 border-2 border-teal-400/40 hover:bg-teal-500/25 p-6 h-full max-h-64 transition-colors"
+        >
+          <LucideIcons.Hourglass className="w-14 h-14 text-teal-300" />
+          <span className="text-lg font-bold text-teal-200">Task for time</span>
+          <span className="text-xs text-teal-300/60 text-center">Do something for a set amount of time</span>
         </motion.button>
       </div>
     </div>
@@ -364,6 +379,81 @@ function SelectTaskCount({
   );
 }
 
+// ─── Phase 3c: Select task duration ──────────────────────────────────────────
+
+function SelectTaskDuration({
+  thenItem,
+  firstItem,
+  onConfirm,
+}: {
+  thenItem: PickedItem;
+  firstItem: PickedItem;
+  onConfirm: (seconds: number) => void;
+}) {
+  const [seconds, setSeconds] = useState(300);
+
+  return (
+    <div className="flex flex-col h-full p-4 gap-3">
+      <div className="text-center shrink-0">
+        <p className="text-sm text-white/40">How long for</p>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <ItemIcon iconName={firstItem.iconName} size="sm" />
+          <h2 className="text-xl font-bold text-white">{firstItem.label}</h2>
+        </div>
+        <p className="text-sm text-white/40 mt-1">before getting</p>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <ItemIcon iconName={thenItem.iconName} size="sm" />
+          <span className="text-lg font-bold text-white">{thenItem.label}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 shrink-0">
+        {WAIT_OPTIONS.map((opt) => (
+          <motion.button
+            key={opt.seconds}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSeconds(opt.seconds)}
+            className={cn(
+              "py-3 rounded-xl font-bold text-sm transition-all",
+              seconds === opt.seconds
+                ? "bg-teal-500/50 border-2 border-teal-400 text-teal-100"
+                : "bg-white/5 border border-white/10 text-white/60 hover:bg-white/10"
+            )}
+          >
+            {opt.label}
+          </motion.button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-center gap-6 bg-white/5 rounded-2xl p-4 border border-white/10 shrink-0">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setSeconds((s) => Math.max(60, s - 60))}
+          className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-2xl font-bold transition-colors"
+        >
+          −
+        </motion.button>
+        <span className="text-2xl font-bold text-white min-w-[7rem] text-center">{formatTime(seconds)}</span>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setSeconds((s) => s + 60)}
+          className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-2xl font-bold transition-colors"
+        >
+          +
+        </motion.button>
+      </div>
+
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={() => onConfirm(seconds)}
+        className="mt-auto py-4 rounded-2xl bg-teal-500/50 hover:bg-teal-500/70 border-2 border-teal-400/60 text-white text-lg font-bold transition-all shrink-0"
+      >
+        Start — {firstItem.label} for {formatTime(seconds)} →
+      </motion.button>
+    </div>
+  );
+}
+
 // ─── Active: Wait (countdown timer) ──────────────────────────────────────────
 
 function ActiveWait({
@@ -509,6 +599,69 @@ function ActiveTask({
   );
 }
 
+// ─── Active: Task for time ────────────────────────────────────────────────────
+
+function ActiveTaskWait({
+  thenItem,
+  firstItem,
+  totalSeconds,
+  remainingSeconds,
+}: {
+  thenItem: PickedItem;
+  firstItem: PickedItem;
+  totalSeconds: number;
+  remainingSeconds: number;
+}) {
+  const progress = 1 - remainingSeconds / totalSeconds;
+  const R = 60;
+  const circ = 2 * Math.PI * R;
+  const remaining_m = Math.floor(remainingSeconds / 60);
+  const remaining_s = remainingSeconds % 60;
+
+  return (
+    <div className="flex h-full p-4 gap-4">
+      {/* FIRST */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-teal-400/40 bg-teal-500/10 p-6">
+        <span className="text-xs font-bold uppercase tracking-widest text-teal-400/70">FIRST</span>
+        <ItemIcon iconName={firstItem.iconName} size="xl" />
+        <span className="text-xl font-bold text-white">{firstItem.label}</span>
+
+        {/* Compact circular timer */}
+        <div className="relative mt-1">
+          <svg width="148" height="148" className="-rotate-90" viewBox="0 0 148 148">
+            <circle cx="74" cy="74" r={R} fill="none" stroke="rgba(45,212,191,0.15)" strokeWidth="10" />
+            <circle
+              cx="74"
+              cy="74"
+              r={R}
+              fill="none"
+              stroke="rgb(45,212,191)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={circ}
+              strokeDashoffset={circ * progress}
+              style={{ transition: "stroke-dashoffset 1s linear" }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-bold text-teal-200 tabular-nums">
+              {remaining_m}:{remaining_s.toString().padStart(2, "0")}
+            </span>
+            <span className="text-xs text-teal-300/50">left</span>
+          </div>
+        </div>
+      </div>
+
+      {/* THEN */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-blue-400/30 bg-blue-500/5 p-6 opacity-50">
+        <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">THEN</span>
+        <ItemIcon iconName={thenItem.iconName} size="xl" />
+        <span className="text-xl font-bold text-white">{thenItem.label}</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── Celebration overlay ──────────────────────────────────────────────────────
 
 function Celebration({ item, onDone }: { item: PickedItem; onDone: () => void }) {
@@ -613,16 +766,18 @@ function BackButton({ phase, onBack }: { phase: Phase; onBack: () => void }) {
 export function FirstThenScreen() {
   const [phase, setPhase] = useState<Phase>({ step: "select-then" });
 
-  // Countdown tick for active-wait
+  // Countdown tick for active-wait and active-task-wait
   useEffect(() => {
-    if (phase.step !== "active-wait") return;
+    if (phase.step !== "active-wait" && phase.step !== "active-task-wait") return;
     if (phase.remainingSeconds <= 0) {
       setPhase({ step: "celebrating", thenItem: phase.thenItem });
       return;
     }
     const id = setTimeout(() => {
       setPhase((prev) =>
-        prev.step === "active-wait" ? { ...prev, remainingSeconds: prev.remainingSeconds - 1 } : prev
+        (prev.step === "active-wait" || prev.step === "active-task-wait")
+          ? { ...prev, remainingSeconds: prev.remainingSeconds - 1 }
+          : prev
       );
     }, 1000);
     return () => clearTimeout(id);
@@ -640,10 +795,14 @@ export function FirstThenScreen() {
         setPhase({ step: "select-first-mode", thenItem: phase.thenItem });
         break;
       case "select-task-count":
-        setPhase({ step: "select-task-item", thenItem: phase.thenItem });
+        setPhase({ step: "select-task-item", thenItem: phase.thenItem, mode: "count" });
+        break;
+      case "select-task-duration":
+        setPhase({ step: "select-task-item", thenItem: phase.thenItem, mode: "duration" });
         break;
       case "active-wait":
       case "active-task":
+      case "active-task-wait":
         reset();
         break;
     }
@@ -668,7 +827,8 @@ export function FirstThenScreen() {
               <SelectFirstMode
                 thenItem={phase.thenItem}
                 onWait={() => setPhase({ step: "select-wait", thenItem: phase.thenItem })}
-                onTask={() => setPhase({ step: "select-task-item", thenItem: phase.thenItem })}
+                onTaskCount={() => setPhase({ step: "select-task-item", thenItem: phase.thenItem, mode: "count" })}
+                onTaskTimer={() => setPhase({ step: "select-task-item", thenItem: phase.thenItem, mode: "duration" })}
               />
             </motion.div>
           )}
@@ -689,7 +849,9 @@ export function FirstThenScreen() {
               <SelectTaskItem
                 thenItem={phase.thenItem}
                 onSelect={(firstItem) =>
-                  setPhase({ step: "select-task-count", thenItem: phase.thenItem, firstItem })
+                  phase.mode === "count"
+                    ? setPhase({ step: "select-task-count", thenItem: phase.thenItem, firstItem })
+                    : setPhase({ step: "select-task-duration", thenItem: phase.thenItem, firstItem })
                 }
               />
             </motion.div>
@@ -703,6 +865,29 @@ export function FirstThenScreen() {
                 onConfirm={(count) =>
                   setPhase({ step: "active-task", thenItem: phase.thenItem, firstItem: phase.firstItem, totalCount: count, completedCount: 0 })
                 }
+              />
+            </motion.div>
+          )}
+
+          {phase.step === "select-task-duration" && (
+            <motion.div key="select-task-duration" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.18 }} className="absolute inset-0">
+              <SelectTaskDuration
+                thenItem={phase.thenItem}
+                firstItem={phase.firstItem}
+                onConfirm={(seconds) =>
+                  setPhase({ step: "active-task-wait", thenItem: phase.thenItem, firstItem: phase.firstItem, totalSeconds: seconds, remainingSeconds: seconds })
+                }
+              />
+            </motion.div>
+          )}
+
+          {phase.step === "active-task-wait" && (
+            <motion.div key="active-task-wait" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
+              <ActiveTaskWait
+                thenItem={phase.thenItem}
+                firstItem={phase.firstItem}
+                totalSeconds={phase.totalSeconds}
+                remainingSeconds={phase.remainingSeconds}
               />
             </motion.div>
           )}
