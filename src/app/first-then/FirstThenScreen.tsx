@@ -26,7 +26,7 @@ type Phase =
   | { step: "active-wait"; thenItem: PickedItem; totalSeconds: number; remainingSeconds: number }
   | { step: "active-task"; thenItem: PickedItem; firstItem: PickedItem; totalCount: number; completedCount: number }
   | { step: "active-task-wait"; thenItem: PickedItem; firstItem: PickedItem; totalSeconds: number; remainingSeconds: number }
-  | { step: "celebrating"; thenItem: PickedItem };
+  | { step: "celebrating"; thenItem: PickedItem; firstMode: string; firstItem?: string };
 
 const WAIT_OPTIONS = [
   { label: "1 min", seconds: 60 },
@@ -770,7 +770,9 @@ export function FirstThenScreen() {
   useEffect(() => {
     if (phase.step !== "active-wait" && phase.step !== "active-task-wait") return;
     if (phase.remainingSeconds <= 0) {
-      setPhase({ step: "celebrating", thenItem: phase.thenItem });
+      const firstMode = phase.step === "active-wait" ? "wait" : "task-duration";
+      const firstItem = phase.step === "active-task-wait" ? phase.firstItem.label : undefined;
+      setPhase({ step: "celebrating", thenItem: phase.thenItem, firstMode, firstItem });
       return;
     }
     const id = setTimeout(() => {
@@ -782,6 +784,23 @@ export function FirstThenScreen() {
     }, 1000);
     return () => clearTimeout(id);
   }, [phase]);
+
+  // Log First-Then completion to analytics
+  useEffect(() => {
+    if (phase.step !== "celebrating") return;
+    const profileId = typeof window !== "undefined" ? sessionStorage.getItem("activeProfileId") : null;
+    if (!profileId) return;
+    fetch("/api/analytics/first-then", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        profileId,
+        thenItem: phase.thenItem.label,
+        firstMode: phase.firstMode,
+        firstItem: phase.firstItem,
+      }),
+    }).catch(() => {});
+  }, [phase.step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reset = () => setPhase({ step: "select-then" });
 
@@ -913,7 +932,7 @@ export function FirstThenScreen() {
                   if (phase.step !== "active-task") return;
                   const next = phase.completedCount + 1;
                   if (next >= phase.totalCount) {
-                    setPhase({ step: "celebrating", thenItem: phase.thenItem });
+                    setPhase({ step: "celebrating", thenItem: phase.thenItem, firstMode: "task-count", firstItem: phase.firstItem.label });
                   } else {
                     setPhase({ ...phase, completedCount: next });
                   }

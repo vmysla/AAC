@@ -64,9 +64,11 @@ model ChildProfile {
   ownerId   String
   createdAt DateTime @default(now())
 
-  owner      User            @relation("Owner", fields: [ownerId], references: [id], onDelete: Cascade)
-  accessList ProfileAccess[]
-  activities Activity[]
+  owner             User               @relation("Owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  accessList        ProfileAccess[]
+  activities        Activity[]
+  buttonPressEvents ButtonPressEvent[]
+  firstThenEvents   FirstThenEvent[]
 }
 
 model ProfileAccess {
@@ -89,6 +91,30 @@ model Activity {
   label     String
   position  Int      // 1-4 slot within the day
   createdAt DateTime @default(now())
+
+  profile ChildProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model ButtonPressEvent {
+  id          String   @id @default(cuid())
+  profileId   String
+  pressedAt   DateTime @default(now())
+  buttonLabel String
+  buttonRow   Int
+  buttonCol   Int
+
+  profile ChildProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, pressedAt])
+}
+
+model FirstThenEvent {
+  id          String   @id @default(cuid())
+  profileId   String
+  completedAt DateTime @default(now())
+  thenItem    String
+  firstMode   String   // "wait" | "task-count" | "task-duration"
+  firstItem   String?
 
   profile ChildProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }

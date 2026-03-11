@@ -21,6 +21,15 @@ export function AACScreen() {
       } catch {
         // ignore localStorage errors
       }
+      // Fire-and-forget analytics logging
+      const profileId = sessionStorage.getItem("activeProfileId");
+      if (profileId) {
+        fetch("/api/analytics/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profileId, buttonLabel: button.label, buttonRow: button.row, buttonCol: button.col }),
+        }).catch(() => {});
+      }
     }
     // Text-to-speech
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
